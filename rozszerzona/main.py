@@ -2,27 +2,7 @@ import numpy as np
 
 
 def build_matrix(n, m, alleys, exits, sewage_manhole, starting_points):
-    matrix_size = n + 1  # Rozmiar macierzy (liczba skrzyżowań + 1)
-
-    # Inicjalizacja macierzy zerami
-    matrix = np.zeros((matrix_size, matrix_size))
-
-    # Wypełnianie macierzy
-    for alley in alleys:
-        i, j, dij = alley
-        matrix[i - 1][j - 1] = matrix[j - 1][i - 1] = -1 / dij
-
-    for exit_point in exits:
-        matrix[exit_point - 1][exit_point - 1] = 1
-
-    matrix[sewage_manhole - 1][sewage_manhole - 1] = 0  # OSK
-
-    # Wypełnienie wektora wyrazów wolnych
-    b = np.zeros(matrix_size)
-    for starting_point in starting_points:
-        b[starting_point - 1] = 1
-
-    return matrix, b
+    pass
 
 
 def solve_gauss(matrix, b):
@@ -39,10 +19,9 @@ def solve_gauss(matrix, b):
 
     n = len(b)
 
-    # Forward elimination
     for i in range(n):
         if matrix[i][i] == 0:
-            return None  # Matrix is singular
+            return None
 
         for j in range(i + 1, n):
             ratio = matrix[j][i] / matrix[i][i]
@@ -50,7 +29,6 @@ def solve_gauss(matrix, b):
                 matrix[j][k] -= ratio * matrix[i][k]
                 b[j] -= ratio * b[i]
 
-    # Back substitution
     x = np.zeros(n)
     for i in range(n - 1, -1, -1):
         x[i] = b[i] / matrix[i][i]
@@ -77,18 +55,14 @@ def monte_carlo_simulation(matrix, b, num_trials):
     n = len(b)
 
     for _ in range(num_trials):
-        x = np.random.rand(n)  # Random input
-        if np.all(np.dot(matrix, x) - b == 0):  # Check if x is a solution
+        x = np.random.rand(n)
+        if np.all(np.dot(matrix, x) - b == 0):
             num_safe_returns += 1
 
     return num_safe_returns / num_trials
 
 
 def main():
-    """
-    Main function to run the program.
-    """
-
     # Read input data
     n, m = map(int, input().split())
     alleys = [list(map(int, input().split())) for _ in range(m)]
@@ -98,11 +72,16 @@ def main():
     matrix, b = build_matrix(n, m, alleys, exits, sewage_manhole, starting_points)
     resolve = solve_gauss(matrix, b)
     matrix, b = build_matrix(n, m, alleys, exits, sewage_manhole, starting_points)
-
-    # Enhanced Matrix and Vector Printing
-    print("System of Equations Matrix:")  # Added a clear label
+    # 3 2
+    # 1 2 3
+    # 2 3 2
+    # 3
+    # 1
+    # 2
+    # should be 0.4
+    print("System of Equations Matrix:")
     for row in matrix:
-        print("  ", row)  # Indentation and spacing for better view
+        print("  ", row)
 
     print("\nFree Term Vector:")
     print("  ", b)
