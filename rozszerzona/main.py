@@ -1,8 +1,12 @@
 import numpy as np
 
 
-def build_matrix(n, m, alleys, exits, sewage_manhole, starting_points):
-    pass
+# , alleys, exits, sewage_manhole, starting_points
+def build_matrix(n, m):
+    matrix_size = n * m
+    zero_vector = np.ones(matrix_size)
+    matrix = np.diag(zero_vector)
+    return matrix
 
 
 def solve_gauss(matrix, b):
@@ -65,13 +69,13 @@ def monte_carlo_simulation(matrix, b, num_trials):
 def main():
     # Read input data
     n, m = map(int, input().split())
-    alleys = [list(map(int, input().split())) for _ in range(m)]
-    sewage_manhole = int(input())
-    exits = list(map(int, input().split()))
-    starting_points = list(map(int, input().split()))
-    matrix, b = build_matrix(n, m, alleys, exits, sewage_manhole, starting_points)
-    resolve = solve_gauss(matrix, b)
-    matrix, b = build_matrix(n, m, alleys, exits, sewage_manhole, starting_points)
+    # alleys = [list(map(int, input().split())) for _ in range(m)]
+    # sewage_manhole = int(input())
+    # exits = list(map(int, input().split()))
+    # starting_points = list(map(int, input().split()))
+    # matrix, b = build_matrix(n, m, alleys, exits, sewage_manhole, starting_points)
+    # resolve = solve_gauss(matrix, b)
+    # matrix, b = build_matrix(n, m, alleys, exits, sewage_manhole, starting_points)
     # 3 2
     # 1 2 3
     # 2 3 2
@@ -79,24 +83,27 @@ def main():
     # 1
     # 2
     # should be 0.4
+    matrix = build_matrix(n, m)
     print("System of Equations Matrix:")
     for row in matrix:
         print("  ", row)
 
-    print("\nFree Term Vector:")
-    print("  ", b)
+    # print("\nFree Term Vector:")
+    # print("  ", b)
 
-    resolve = solve_gauss(matrix, b)
 
-    print("\nSolution Vector:")
-    if resolve is not None:
-        print("  ", resolve)
-    else:
-        print("  Matrix is singular.")
-
-    print("\nMonte Carlo Simulation Result:")
-    print("  ", monte_carlo_simulation(matrix, b, 10000))
-
+#
+# resolve = solve_gauss(matrix, b)
+#
+# print("\nSolution Vector:")
+# if resolve is not None:
+# print("  ", resolve)
+# else:
+# print("  Matrix is singular.")
+#
+# print("\nMonte Carlo Simulation Result:")
+# print("  ", monte_carlo_simulation(matrix, b, 10000))
+#
 
 if __name__ == "__main__":
     main()
