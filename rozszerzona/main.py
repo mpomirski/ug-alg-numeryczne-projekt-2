@@ -1,81 +1,105 @@
 import numpy as np
+import random
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
-def build_graph_and_matrix(n, alleys, exits, sewage_manholes):
-    adjacency = {i: [] for i in range(n)}  # Initial adjacency list for base nodes
-
-    # Expanding graph with intermediate nodes
-    node_count = n
-    for start, end, length in alleys:
-        start -= 1
-        end -= 1
-        current = start
-        for _ in range(length - 1):
-            new_node = node_count
-            adjacency[current].append(new_node)
-            adjacency[new_node] = [current]  # Initialize new node adjacency
-            current = new_node
+def build_park(input_matrix):
+    G = nx.Graph()
+    id_map = {}
+    node_count = 0
+    for intersection1, intersection2, steps in input_matrix:
+        if intersection1 not in id_map:
+            id_map[intersection1] = node_count
             node_count += 1
-        adjacency[current].append(end)
-        adjacency[end].append(current)
+        if intersection2 not in id_map:
+            id_map[intersection2] = node_count
+            node_count += 1
 
-    # Building the transition matrix
-    size = node_count  # Total nodes including intermediates
-    matrix = np.zeros((size, size))
-    for node, neighbors in adjacency.items():
-        if node + 1 in exits:  # +1 to correct zero-indexing for input
-            matrix[node] = np.zeros(size)
-            matrix[node, node] = 1
-        elif node + 1 in sewage_manholes:  # Same indexing correction
-            matrix[node] = np.zeros(size)
-            matrix[node, node] = 1
-        else:
-            num_neighbors = len(neighbors)
-            matrix[node, node] = 1
-            for neighbor in neighbors:
-                matrix[node, neighbor] = -1 / num_neighbors
+        prev_node = id_map[intersection1]
+        for step in range(1, steps + 1):
+            step_node = node_count
+            G.add_node(step_node)
+            G.add_edge(prev_node, step_node)
+            prev_node = step_node
+            node_count += 1
+        G.add_edge(prev_node, id_map[intersection2])
 
-    # Setup the free terms vector for exits
-    b = np.zeros(size)
-    for exit in exits:
-        exit_index = exit - 1  # Adjust for zero-indexing
-        b[exit_index] = 1
-
-    return matrix, b, size
+    return G, id_map
 
 
-def solve_gauss(matrix, b):
-    n = len(matrix)
-    # Gaussian elimination
+def adjacency_matrix(G):
+    nodes = sorted(G.nodes())
+    n = len(nodes)
+    adj_matrix = np.zeros((n, n), dtype=int)
+    for i, node in enumerate(nodes):
+        for neighbor in G.neighbors(node):
+            adj_matrix[i][nodes.index(neighbor)] = 1
+    return adj_matrix, nodes
+
+
+def generate_transition_matrix(n, adjacency_list):
+    transition_matrix = np.zeros((n, n))
     for i in range(n):
-        pivot = matrix[i, i]
-        if pivot == 0:
-            continue
-        for j in range(i + 1, n):
-            factor = matrix[j, i] / pivot
-            matrix[j] -= factor * matrix[i]
-            b[j] -= factor * b[i]
+        neighbors = np.where(adjacency_list[i] == 1)[0]
+        num_neighbors = len(neighbors)
+        for neighbor in neighbors:
+            transition_matrix[i][neighbor] = 1 / num_neighbors
+    return transition_matrix
 
-    # Back substitution
-    x = np.zeros(n)
-    for i in reversed(range(n)):
-        x[i] = (b[i] - np.sum(matrix[i, i + 1 :] * x[i + 1 :])) / matrix[i, i]
 
-    return x
+def generate_equations(transition_matrix, osk, wyjscie, n):
+    A = np.eye(n)
+    b = np.zeros(n)
+    for i in range(n):
+        if i == osk:
+            A[i][i] = 1
+            b[i] = 0
+        elif i == wyjscie:
+            A[i][i] = 1
+            b[i] = 1
+        else:
+            A[i][i] = 1
+            A[i] -= transition_matrix[i]
+    return A, b
+
+
+def monte_carlo(graph, start, target, pit, num_iterations=10000):
+    num_target_reached = 0
+    for _ in range(num_iterations):
+        current_node = start
+        while True:
+            neighbors = list(graph.adj[current_node])
+            next_node = random.choice(neighbors)
+            if next_node == target:
+                num_target_reached += 1
+                break
+            elif next_node == pit:
+                break
+            current_node = next_node
+    return num_target_reached / num_iterations
 
 
 def main():
-    n = int(input("Enter the number of nodes: "))
-    alleys = [(1, 2, 3), (2, 3, 2)]
-    exits = [1]
-    sewage_manholes = [3]
+    input_matrix = [(1, 2, 3), (2, 3, 2)]  # Example input data
+    start = 2  # Start node ID
+    osk = 3  # OSK node ID
+    wyjscie = 1  # Exit node ID
+    num_iterations = 10000  # Number of Monte Carlo simulations
 
-    matrix, b, size = build_graph_and_matrix(n, alleys, exits, sewage_manholes)
-    probabilities = solve_gauss(matrix, b)
-
-    print("Matrix:\n", matrix)
-    print("Free terms vector (b):", b)
-    print("Probabilities of reaching an exit from each node:", probabilities)
+    G, id_map = build_park(input_matrix)
+    adj_matrix, nodes = adjacency_matrix(G)
+    transition_matrix = generate_transition_matrix(len(nodes), adj_matrix)
+    A, b = generate_equations(
+        transition_matrix, id_map[osk], id_map[wyjscie], len(nodes)
+    )
+    probabilities = np.linalg.solve(A, b)
+    mc_probability = monte_carlo(
+        G, id_map[start], id_map[wyjscie], id_map[osk], num_iterations
+    )
+    print(A)
+    print("Probabilities by Gaussian Elimination:", probabilities)
+    print("Monte Carlo Probability:", mc_probability)
 
 
 if __name__ == "__main__":
