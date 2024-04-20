@@ -1,109 +1,82 @@
 import numpy as np
 
 
-# , alleys, exits, sewage_manhole, starting_points
-def build_matrix(n, m):
-    matrix_size = n * m
-    zero_vector = np.ones(matrix_size)
-    matrix = np.diag(zero_vector)
-    return matrix
+def build_graph_and_matrix(n, alleys, exits, sewage_manholes):
+    adjacency = {i: [] for i in range(n)}  # Initial adjacency list for base nodes
+
+    # Expanding graph with intermediate nodes
+    node_count = n
+    for start, end, length in alleys:
+        start -= 1
+        end -= 1
+        current = start
+        for _ in range(length - 1):
+            new_node = node_count
+            adjacency[current].append(new_node)
+            adjacency[new_node] = [current]  # Initialize new node adjacency
+            current = new_node
+            node_count += 1
+        adjacency[current].append(end)
+        adjacency[end].append(current)
+
+    # Building the transition matrix
+    size = node_count  # Total nodes including intermediates
+    matrix = np.zeros((size, size))
+    for node, neighbors in adjacency.items():
+        if node + 1 in exits:  # +1 to correct zero-indexing for input
+            matrix[node] = np.zeros(size)
+            matrix[node, node] = 1
+        elif node + 1 in sewage_manholes:  # Same indexing correction
+            matrix[node] = np.zeros(size)
+            matrix[node, node] = 1
+        else:
+            num_neighbors = len(neighbors)
+            matrix[node, node] = 1
+            for neighbor in neighbors:
+                matrix[node, neighbor] = -1 / num_neighbors
+
+    # Setup the free terms vector for exits
+    b = np.zeros(size)
+    for exit in exits:
+        exit_index = exit - 1  # Adjust for zero-indexing
+        b[exit_index] = 1
+
+    return matrix, b, size
 
 
 def solve_gauss(matrix, b):
-    """
-    Function to solve the system of equations using Gaussian elimination without pivoting.
-
-    Args:
-        matrix (numpy.ndarray): The system of equations matrix.
-        b (numpy.ndarray): The free term vector.
-
-    Returns:
-        numpy.ndarray: The solution vector or None if the matrix is singular.
-    """
-
-    n = len(b)
-
+    n = len(matrix)
+    # Gaussian elimination
     for i in range(n):
-        if matrix[i][i] == 0:
-            return None
-
+        pivot = matrix[i, i]
+        if pivot == 0:
+            continue
         for j in range(i + 1, n):
-            ratio = matrix[j][i] / matrix[i][i]
-            for k in range(n):
-                matrix[j][k] -= ratio * matrix[i][k]
-                b[j] -= ratio * b[i]
+            factor = matrix[j, i] / pivot
+            matrix[j] -= factor * matrix[i]
+            b[j] -= factor * b[i]
 
+    # Back substitution
     x = np.zeros(n)
-    for i in range(n - 1, -1, -1):
-        x[i] = b[i] / matrix[i][i]
-        for j in range(i - 1, -1, -1):
-            b[j] -= matrix[j][i] * x[i]
+    for i in reversed(range(n)):
+        x[i] = (b[i] - np.sum(matrix[i, i + 1 :] * x[i + 1 :])) / matrix[i, i]
 
     return x
 
 
-def monte_carlo_simulation(matrix, b, num_trials):
-    """
-    Function to perform Monte Carlo simulation to verify the solution.
-
-    Args:
-        matrix (numpy.ndarray): The system of equations matrix.
-        b (numpy.ndarray): The free term vector.
-        num_trials (int): Number of trials to simulate.
-
-    Returns:
-        float: The estimated probability of safe return home.
-    """
-
-    num_safe_returns = 0
-    n = len(b)
-
-    for _ in range(num_trials):
-        x = np.random.rand(n)
-        if np.all(np.dot(matrix, x) - b == 0):
-            num_safe_returns += 1
-
-    return num_safe_returns / num_trials
-
-
 def main():
-    # Read input data
-    n, m = map(int, input().split())
-    # alleys = [list(map(int, input().split())) for _ in range(m)]
-    # sewage_manhole = int(input())
-    # exits = list(map(int, input().split()))
-    # starting_points = list(map(int, input().split()))
-    # matrix, b = build_matrix(n, m, alleys, exits, sewage_manhole, starting_points)
-    # resolve = solve_gauss(matrix, b)
-    # matrix, b = build_matrix(n, m, alleys, exits, sewage_manhole, starting_points)
-    # 3 2
-    # 1 2 3
-    # 2 3 2
-    # 3
-    # 1
-    # 2
-    # should be 0.4
-    matrix = build_matrix(n, m)
-    print("System of Equations Matrix:")
-    for row in matrix:
-        print("  ", row)
+    n = int(input("Enter the number of nodes: "))
+    alleys = [(1, 2, 3), (2, 3, 2)]
+    exits = [1]
+    sewage_manholes = [3]
 
-    # print("\nFree Term Vector:")
-    # print("  ", b)
+    matrix, b, size = build_graph_and_matrix(n, alleys, exits, sewage_manholes)
+    probabilities = solve_gauss(matrix, b)
 
+    print("Matrix:\n", matrix)
+    print("Free terms vector (b):", b)
+    print("Probabilities of reaching an exit from each node:", probabilities)
 
-#
-# resolve = solve_gauss(matrix, b)
-#
-# print("\nSolution Vector:")
-# if resolve is not None:
-# print("  ", resolve)
-# else:
-# print("  Matrix is singular.")
-#
-# print("\nMonte Carlo Simulation Result:")
-# print("  ", monte_carlo_simulation(matrix, b, 10000))
-#
 
 if __name__ == "__main__":
     main()
