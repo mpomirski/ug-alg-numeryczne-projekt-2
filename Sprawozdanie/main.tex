@@ -1,0 +1,205 @@
+% Preamble
+\documentclass[titlepage]{article}
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+\usepackage{graphicx, polski, inputenc, hyperref, titlepic, listings, amsmath, amsfonts, svg, blkarray, fancyhdr, enumitem}
+
+% Page header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Kwiecień 2024}
+\lhead{\bfseries Algorytmy numeryczne - Niezdecydowany wędrowiec}
+\fancyfoot{}
+\renewcommand{\footrulewidth}{0.4pt}
+\lfoot{Konrad Kreczko, Michał Pomirski}
+\rfoot{}
+
+% Listings settings
+\lstset{
+    language=go,
+    basicstyle=\footnotesize,
+    numbers=left,
+    stepnumber=1,
+    showstringspaces=false,
+    tabsize=1,
+    breaklines=true,
+    breakatwhitespace=false,
+}
+
+% Document content
+\begin{document}
+% -------------- Title page --------------
+\thispagestyle{empty}
+\begin{center}
+    {\sc \Large UNIWERSYTET GDAŃSKI}
+    \par\vspace{1cm}\par
+    {\large
+    WYDZIAŁ MATEMATYKI, FIZYKI I INFORMATYKI\\
+    Kierunek: Informatyka Praktyczna\\
+    Rok II Semestr 4\\
+    Algorytmy Numeryczne
+    }
+\end{center}
+\begin{center}
+    \includegraphics[width=5cm]{ug-logo.png}
+\end{center}
+\begin{center}
+    {\large
+    Konrad Kreczko, Michał Pomirski
+    }\par\vspace{0.5cm}\par
+
+    {\LARGE
+    NIEZDECYDOWANY WĘDROWIEC
+    }
+\end{center}
+\vspace{4cm}
+\vfill
+\begin{center}
+    Gdańsk 2024
+\end{center}
+
+\newpage
+% -------------- Table of contents --------------
+\tableofcontents
+\newpage
+
+\section{Opis problemu}
+\subsection{Wersja uproszczona}
+Niezdecydowany wędrowiec spacerując parkową aleją położoną w linii NS porusza się jeden krok na północ z prawdopodobieństwem 1/2 i z prawdopodobieństwem 1/2 jeden krok na południe. Przyjmujemy, że wędrowiec robi równe kroki w obu kierunkach, a kolejne losowania są niezależne.
+\par W odległości $n$ kroków na północ od początkowego położenia (start) wędrowca znajduje się odkryta studzienka kanalizacyjna (OSK) do której niezdecydowany wędrowiec z pewnością wpadnie, złamie nogę i tak skończy się ten spacer, jeśli tylko do niej dotrze.
+\par W odległości $s$ kroków na południe od początkowego położenia wędrowca znajduje się wyjści z parku. Po dojściu do wyjścia wędrowiec przestaje być niezdecydowany i dalej pewnym krokiem bezpiecznie wraca do domu.
+\par Interesuje nas prawdopodobieństwo, że wędrowiec bezpiecznie wróci do domu.
+
+
+\subsection{Wersja podstawowa}
+Park składa się z $m$ alejek, które krzyżują się w punktach $v_1, v_2, ..., v_n$. Początek i koniec alejki uważamy za skrzyżowanie. Jest co najwyżej jedna alejka łącząca $v_i$ z $v_j$ o długości $d_{ij}$ kroków, $d_{ij} \in \mathbb{N}^+$.
+\par Niezdecydowany wędrowiec spacerując parkową aleją porusza się podobnie jak w wersji uproszczonej z prawdopodobieństwem 1/2 w jedną lub drugą stronę. Jeśli trafi na skrzyżowanie, to wybiera z równym prawdopodobieństwem jedną z alejek (łącznie z tą z której trafił na skrzyżowanie).\\
+Jedno ze skrzyżowań jest punktem startowym, jedno ze skrzyżowań jest wyjściem.\\ W jednym ze skrzyżowań znajduje się OSK (ale nie w wyjściu i nie w punkcie startowym).\\
+Podobnie jak w wersji uproszczonej, interesuje nas prawdopodobieństwo, że wędrowiec bezpiecznie wróci do domu.\\
+Dodatkowo, możliwe są poniższe rozszerzenia danego problemu:
+\begin{itemize}
+\item[$R0$:]Może się zdarzyć, że w parku jest więcej niż jedno wyjście.
+\item[$R1$:]Może się zdarzyć, że w parku jest więcej niż jedna OSK.
+\item[$R2$:]W parku może być dwóch wędrowców, należy wyznaczyć prawdopobieństwo, że oboje wrócą do domu. W trakcie wędrówki, jeśli oboje miną się w tej samej alejce, staną w tym samym miejscu alejki lub na tym samym skrzyżowaniu, dochodzi do awantury i incydentu, który nie kończy się bezpiecznym powrotem do domu.
+\item[$R3$:]Może się zdarzyć, że kilka alejek, być może różnej długości, łączy te same dwa skrzyżowania.
+\item[$R4$:]Przy wybranych skrzyżowaniach stoją pojemniki na śmieci. Wędrowiec nie lubi
+śmietników i prawdopodobieństwo, że zrobi krok do miejsca, gdzie pojemnik się znajduje jest dwa razy mniejsze niż w stronę, gdzie pojemnika nie ma. Należy uwzględnić przypadek bardzo krótkich alejek, np. o długości jednego lub dwóch kroków.
+\end{itemize}
+
+\newpage
+\section{Podejście do problemu}
+\subsection{Wersja uproszczona}
+Dla $n = 2$ i $s = 3$, oznaczymy miejsca w których może stać wędrowiec jako: $m_0\ (wyjście)$, $m_1$, $m_2$, $m_3\ (start)$, $m_4$ i $m_5\ (OSK)$.\\
+Niech $p_i$ oznacza prawdopodbieństwo bezpieczenego powrotu do domu, gdy wędrowiec stoi w punkcie $m_i$.\\
+Możemy zapisać następujące równania:
+\begin{align}
+&p_0 = 1,\\
+&p_5 = 0,\\
+&p_1 = 0.5\cdot p_0 + 0.5 \cdot p_2
+\end{align}
+W postaci macierzowej, układ równań odzwierciedlający podaną sytuację wygląda tak:
+\begin{align}\label{eq4}
+\begin{bmatrix}
+1 & 0 & 0 & 0 & 0 & 0 \\
+-0.5 & 1 & -0.5 & 0 & 0 & 0 \\
+0 & -0.5 & 1 & -0.5 & 0 & 0 \\
+0 & 0 & -0.5 & 1 & -0.5 & 0 \\
+0 & 0 & 0 & -0.5 & 1 & -0.5 \\
+0 & 0 & 0 & 0 & 0 & 1 
+\end{bmatrix}
+\begin{bmatrix}
+p_0\\
+p_1\\
+p_2\\
+p_3\\
+p_4\\
+p_5
+\end{bmatrix}
+=
+\begin{bmatrix}
+1\\
+0\\
+0\\
+0\\
+0\\
+0
+\end{bmatrix}
+\end{align}
+Rozwiązaniem tego układu jest wektor prawdopodobieństw $P$, który dla przypadku powyżej wynosi:
+\begin{align}
+P=
+\begin{bmatrix}
+1\\
+0.8\\
+0.6\\
+0.4\\
+0.2\\
+0
+\end{bmatrix}
+\end{align}
+Zatem, dla danego punktu startowego $s=3$, prawdopobieństwo bezpieczenego powrotu do domu wynosi $0.4$.
+\newpage
+\subsection{Błądzenie losowe w grafach}
+Opisany problem wędrowca jest przykładem problemu błędzenia losowego w grafach, związanego z teorią obwodów elektrycznych, czy algorytmu PageRank.
+\par Problem ten można przedstawić w postaci grafu skierowanego, gdzie skrzyżowania przedstawione są jako wierzchołki, a alejki - jako krawędzie z wagami odpowiadającymi prawdopodobieństwu przejścia między skrzyżowaniami.
+\begin{figure}[h]
+    \centering
+    \includesvg[width=5.0in]{graph.svg}
+    \caption{Przedstawienie wersji uproszczonej problemu w postaci grafu skierowanego.}
+    \label{fig:enter-label}
+\end{figure}\\
+
+Przedstawiając taki graf jako macierz sąsiedztwa, otrzymujemy tę samą macierz co w \eqref{eq4}.
+\[
+\begin{blockarray}{ccccccc}
+ & $m_0$ & $m_1$ & $m_2$ & $m_3$ & $m_4$ & $m_5$ \\
+\begin{block}{c[cccccc]}
+$m_0$ & 1 & 0 & 0 & 0 & 0 & 0 \\
+$m_1$ & -0.5 & 1 & -0.5 & 0 & 0 & 0 \\
+$m_2$ & 0 & -0.5 & 1 & -0.5 & 0 & 0 \\
+$m_3$ & 0 & 0 & -0.5 & 1 & -0.5 & 0 \\
+$m_4$ & 0 & 0 & 0 & -0.5 & 1 & -0.5 \\
+$m_5$ & 0 & 0 & 0 & 0 & 0 & 1 
+\end{block}
+\end{blockarray}
+\]
+
+\section{Algorytmy}
+
+\subsection{Eliminacja Gaussa bez wyboru elementu podstawowego}
+Eliminacja Gaussa bez wyboru elementu podstawowego
+
+\subsection{Eliminacja Gaussa z częściowym wyborem elementu podstawowego}
+Eliminacja Gaussa z częściowym wyborem elementu podstawowego
+
+\subsection{Metoda iteracyjna Gaussa-Seidela}
+Metoda iteracyjna Gaussa-Seidela
+
+\newpage
+
+\section{Hipotezy}
+
+\subsection{Hipoteza 1}
+Algorytm A2 zwykle daje dokładniejsze wyniki niż A1. Różnica w dokładności rośnie wraz z rozmiarem macierzy i liczbą niezerowych współczynników.
+\\
+\par Dowód fajny tak.
+
+\subsection{Hipoteza 2}
+Algorytm A3 zawsze działa dla podstawowego zadania.
+\\
+\par Dowód fajny tak.
+
+\subsection{Hipoteza 3}
+Jeśli Algorytm A3 jest zbieżny do rozwiązania, to wyniki otrzymujemy istotnie szybciej niż dla A1 i A2.
+\\
+\par Dowód fajny tak.
+
+\section{Podsumowanie}
+Podsumowanie
+
+\section{Zakres pracy}
+\begin{itemize}[label=\textbullet, leftmargin=1.2in]
+    \item[Konrad Kreczko:] Implementacja algorytmu A1, Metoda Monte Carlo, Implementacja wersji podstawowej
+    \item[Michał Pomirski:] Implementacja algorytmu A2, Metoda Monte Carlo, Sprawozdanie
+\end{itemize}
+
+\end{document}
