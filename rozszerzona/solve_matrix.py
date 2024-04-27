@@ -10,9 +10,10 @@ def gauss(matrix, vector):
         if np.abs(A[i, i]) == 0:
             for k in range(i + 1, n):
                 if np.abs(A[k, i]) > np.abs(A[i, i]):
-                    A[[i, k]] = A[[k, i]]
-                    b[[i, k]] = b[[k, i]]
+                    A[[i, k]], A[[k, i]] = A[[k, i]], A[[i, k]]
+                    b[[i, k]], b[[k, i]] = b[[k, i]], b[[i, k]]
                     break
+
         for j in range(i + 1, n):
             factor = A[j, i] / A[i, i]
             A[j] -= factor * A[i]
@@ -21,7 +22,6 @@ def gauss(matrix, vector):
     result = np.zeros(n)
     for i in range(n - 1, -1, -1):
         result[i] = (b[i] - np.dot(A[i, i + 1 :], result[i + 1 :])) / A[i, i]
-
     return result
 
 
@@ -33,8 +33,14 @@ def gauss_partial_pivoting(A, b):
     for i in range(n):
         max_row_index = np.argmax(np.abs(A[i:n, i])) + i
         if i != max_row_index:
-            A[[i, max_row_index]] = A[[max_row_index, i]]
-            b[[i, max_row_index]] = b[[max_row_index, i]]
+            A[[i, max_row_index]], A[[max_row_index, i]] = (
+                A[[max_row_index, i]],
+                A[[i, max_row_index]],
+            )
+            b[[i, max_row_index]], b[[max_row_index, i]] = (
+                b[[max_row_index, i]],
+                b[[i, max_row_index]],
+            )
 
         for j in range(i + 1, n):
             factor = A[j, i] / A[i, i]
@@ -44,12 +50,25 @@ def gauss_partial_pivoting(A, b):
     result = np.zeros(n)
     for k in range(n - 1, -1, -1):
         result[k] = (b[k] - np.dot(A[k, k + 1 :], result[k + 1 :])) / A[k, k]
-
     return result
 
 
-def gauss_seidel(matrix, vector):
-    pass
+def gauss_seidel(A, b, tolerance=1e-10, max_iterations=10000):
+    A = np.array(A, dtype=float)
+    b = np.array(b, dtype=float)
+    n = len(A)
+    x = np.zeros(n)
+    x_new = np.copy(x)
+
+    for iteration in range(max_iterations):
+        for i in range(n):
+            sum_ = np.dot(A[i, :i], x_new[:i]) + np.dot(A[i, i + 1 :], x[i + 1 :])
+            x_new[i] = (b[i] - sum_) / A[i, i] if A[i, i] != 0 else x[i]
+
+        if np.linalg.norm(x_new - x, ord=np.inf) < tolerance:
+            return x_new
+        x = np.copy(x_new)
+    return x_new
 
 
 if __name__ == "__main__":
@@ -59,8 +78,8 @@ if __name__ == "__main__":
     A2 = [[1, 2, 3], [2, 5, 3], [1, 0, 8]]
     b2 = [10, 8, 3]
 
-    A3 = [[1, 1, 1], [0, 2, 5], [2, 5, -1]]
-    b3 = [6, -4, 27]
+    A3 = [[10, 1, 2], [2, 10, 3], [3, 4, 20]]
+    b3 = [13, 15, 27]
 
     x1_gauss = gauss(A1, b1)
     x2_gauss = gauss(A2, b2)
@@ -79,3 +98,4 @@ if __name__ == "__main__":
         x2_gauss_partial_pivoting,
         x3_gauss_partial_pivoting,
     )
+    print("Gauss-Seidel method:", x1_gauss_seidel, x2_gauss_seidel, x3_gauss_seidel)
