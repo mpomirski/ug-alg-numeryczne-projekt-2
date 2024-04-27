@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
+from solve_matrix import gauss
 
 
 def read_file(file_name):
@@ -81,10 +82,12 @@ def main():
 
     manhole, park_exit = 3, 1
     matrix, vector = prepare_data(equations, manhole, park_exit)
+    test_solve = gauss(matrix, vector)
 
     print(adjacency_list)
     print(matrix)
     print(vector)
+    print(test_solve)
 
 
 if __name__ == "__main__":
