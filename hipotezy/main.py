@@ -132,6 +132,7 @@ def main():
         )
         h3_results.append((gauss_time, gauss_partial_time, gauss_seidel_time))
 
+        print(matrix)
         print(f"Size {size}:")
         print(f"  H2 - Convergence: {h2_convergence}")
         print(
