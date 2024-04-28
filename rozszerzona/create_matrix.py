@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
+from collections import deque
 from solve_matrix import gauss
 
 
@@ -29,46 +30,81 @@ def build_graph(edges):
     return graph
 
 
+def custom_sort(node):
+    if isinstance(node, int):
+        return (0, node)
+    if isinstance(node, str):
+        return (1, int("".join(filter(str.isdigit, node))), node)
+    raise ValueError("Node is neither an int nor a string.")
+
+
 def create_adjacency_list(graph):
-    adj_list = {
-        node: list(sorted(graph.neighbors(node), key=lambda x: str(x)))
-        for node in graph.nodes()
+    return {
+        node: list(sorted(graph.neighbors(node), key=custom_sort))
+        for node in sorted(graph.nodes(), key=custom_sort)
     }
-    return adj_list
 
 
 def create_transition_matrix(adjacency_list):
     n = len(adjacency_list)
     matrix = np.zeros((n, n))
-    for i, (node, neighbours) in enumerate(
-        sorted(adjacency_list.items(), key=lambda x: str(x))
-    ):
+    nodes = sorted(adjacency_list.keys(), key=lambda x: str(x))
+    for i, node in enumerate(nodes):
+        neighbours = adjacency_list[node]
         for neighbour in neighbours:
-            matrix[
-                i, sorted(adjacency_list.keys(), key=lambda x: str(x)).index(neighbour)
-            ] = 1 / len(neighbours)
+            j = nodes.index(neighbour)
+            matrix[i, j] = 1 / len(neighbours)
     return matrix
 
 
 def generate_equations(transition_matrix):
-    n = len(transition_matrix)
-    equations = np.eye(n) - transition_matrix
-    return equations
+    return np.eye(len(transition_matrix)) - transition_matrix
 
 
 def draw_graph(graph, filename="graph.png"):
     nx.draw(graph, with_labels=True, font_weight="bold")
     plt.savefig(filename)
+    plt.close()
 
 
-def prepare_data(equations, manhole, park_exit):
+def prepare_data(equations, manhole_indices, exit_indices):
     n = len(equations)
     vector = np.zeros(n)
-    vector[park_exit - 1] = 1
-    equations[manhole - 1] = np.zeros(n)
-    equations[park_exit - 1] = np.zeros(n)
-    equations[park_exit - 1, park_exit - 1] = 1
+    for exit_index in exit_indices:
+        vector[exit_index] = 1
+        equations[exit_index] = np.zeros(n)
+        equations[exit_index, exit_index] = 1
+
+    for manhole_index in manhole_indices:
+        equations[manhole_index] = np.zeros(n)
+        equations[manhole_index, manhole_index] = 1
+
     return equations, vector
+
+
+def find_node_indices(graph, exit_labels, manhole_labels):
+    visited = set()
+    exit_indices = []
+    manhole_indices = []
+    for node in graph.nodes():
+        if node in visited:
+            continue
+        queue = deque([node])
+        counter = 0
+        while queue:
+            current_node = queue.popleft()
+            if current_node not in visited:
+                visited.add(current_node)
+                if current_node in exit_labels:
+                    exit_indices.append(counter)
+                if current_node in manhole_labels:
+                    manhole_indices.append(counter)
+                counter += 1
+                for neighbor in graph.neighbors(current_node):
+                    if neighbor not in visited:
+                        queue.append(neighbor)
+
+    return exit_indices, manhole_indices
 
 
 def main():
@@ -79,15 +115,16 @@ def main():
     adjacency_list = create_adjacency_list(graph)
     trans_matrix = create_transition_matrix(adjacency_list)
     equations = generate_equations(trans_matrix)
+    exit_index, manhole_index = find_node_indices(graph, [2, 4], [1])
+    wanderer_index = 3
 
-    manhole, park_exit = 3, 1
-    matrix, vector = prepare_data(equations, manhole, park_exit)
-    test_solve = gauss(matrix, vector)
+    matrix, vector = prepare_data(equations, manhole_index, exit_index)
+    solve = gauss(matrix, vector)
 
-    print(adjacency_list)
+    print(manhole_index, exit_index)
     print(matrix)
     print(vector)
-    print(test_solve)
+    print(solve[wanderer_index - 1])
 
 
 if __name__ == "__main__":
