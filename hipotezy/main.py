@@ -90,6 +90,9 @@ def test_hypothesis_1():
 def test_hypothesis_2(matrix, vector):
     try:
         result_gauss_seidel = gauss_seidel(matrix, vector)
+        if not np.all(np.isfinite(result_gauss_seidel)):
+            print("Gauss-Seidel did not converge")
+            print(matrix, vector)
         return np.all(np.isfinite(result_gauss_seidel))
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -118,11 +121,17 @@ def main():
     h3_results = []
 
     for size in sizes:
-        matrix = np.random.randint(0, 10, (size, size))
+        matrix = np.random.random((size, size))
         vector = np.random.randint(0, 10, size)
 
         for i in range(size):
-            matrix[i][i] += size
+            new_row = -matrix[i] / (np.sum(matrix[i])-1)
+            matrix[i] = new_row
+            matrix[i, i] = 1
+            matrix[0] = np.zeros(size)
+            matrix[0][0] = 1
+            matrix[size - 1] = np.zeros(size)
+            matrix[size - 1][size - 1] = 1
 
         h2_convergence = test_hypothesis_2(matrix, vector)
         h2_results.append(h2_convergence)
