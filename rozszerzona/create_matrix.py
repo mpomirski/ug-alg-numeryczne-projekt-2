@@ -67,44 +67,44 @@ def draw_graph(graph, filename="graph.png"):
     plt.close()
 
 
-def prepare_data(equations, manhole, park_exit):
+def prepare_data(equations, manhole_indices, exit_indices):
     n = len(equations)
     vector = np.zeros(n)
-    vector[park_exit] = 1
-    equations[manhole] = np.zeros(n)
-    equations[manhole, manhole] = 1
-    equations[park_exit] = np.zeros(n)
-    equations[park_exit, park_exit] = 1
+    for exit_index in exit_indices:
+        vector[exit_index] = 1
+        equations[exit_index] = np.zeros(n)
+        equations[exit_index, exit_index] = 1
+
+    for manhole_index in manhole_indices:
+        equations[manhole_index] = np.zeros(n)
+        equations[manhole_index, manhole_index] = 1
+
     return equations, vector
 
 
-def find_node_indices(graph, exit_label, manhole_label):
-    start_node = exit_label if exit_label in graph.nodes() else manhole_label
-
-    queue = deque([start_node])
+def find_node_indices(graph, exit_labels, manhole_labels):
     visited = set()
+    exit_indices = []
+    manhole_indices = []
+    for node in graph.nodes():
+        if node in visited:
+            continue
+        queue = deque([node])
+        counter = 0
+        while queue:
+            current_node = queue.popleft()
+            if current_node not in visited:
+                visited.add(current_node)
+                if current_node in exit_labels:
+                    exit_indices.append(counter)
+                if current_node in manhole_labels:
+                    manhole_indices.append(counter)
+                counter += 1
+                for neighbor in graph.neighbors(current_node):
+                    if neighbor not in visited:
+                        queue.append(neighbor)
 
-    node_indices = {}
-    counter = 0
-
-    while queue:
-        current_node = queue.popleft()
-        if current_node not in visited:
-            visited.add(current_node)
-
-            if current_node == exit_label or current_node == manhole_label:
-                node_indices[current_node] = counter
-
-            counter += 1
-
-            for neighbor in graph.neighbors(current_node):
-                if neighbor not in visited:
-                    queue.append(neighbor)
-
-    exit_index = node_indices.get(exit_label, None)
-    manhole_index = node_indices.get(manhole_label, None)
-
-    return exit_index, manhole_index
+    return exit_indices, manhole_indices
 
 
 def main():
@@ -115,15 +115,16 @@ def main():
     adjacency_list = create_adjacency_list(graph)
     trans_matrix = create_transition_matrix(adjacency_list)
     equations = generate_equations(trans_matrix)
-    exit_index, manhole_index = find_node_indices(graph, 1, 3)
+    exit_index, manhole_index = find_node_indices(graph, [2, 4], [1])
+    wanderer_index = 3
 
     matrix, vector = prepare_data(equations, manhole_index, exit_index)
-    test_solve = gauss(matrix, vector)
+    solve = gauss(matrix, vector)
 
     print(manhole_index, exit_index)
     print(matrix)
     print(vector)
-    print(test_solve)
+    print(solve[wanderer_index - 1])
 
 
 if __name__ == "__main__":
