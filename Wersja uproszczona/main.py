@@ -7,6 +7,7 @@ import os
 import time
 # Random walk matrix
 
+
 def test_version() -> None:
     probability_matrix = np.matrix([
         [1,     0,      0,      0,      0,      0],
@@ -17,7 +18,7 @@ def test_version() -> None:
         [0,     0,      0,      0,      0,      1],
     ])
 
-    y = np.array([0, 0, 0, 0, 0, 1]) # p5, p4, p3, p2, p1, p0
+    y = np.array([0, 0, 0, 0, 0, 1])  # p5, p4, p3, p2, p1, p0
 
     result = np.linalg.solve(probability_matrix, y)
     print('The result the random walk starting from p3 will end in p0:')
@@ -40,12 +41,14 @@ def test_version() -> None:
     batches = 10
     batch_size = trials // batches
     pool = mp.Pool(mp.cpu_count())
-    results = [pool.apply_async(random_walk, args=(batch_size,)) for _ in range(batches)]
+    results = [pool.apply_async(random_walk, args=(batch_size,))
+               for _ in range(batches)]
     pool.close()
     pool.join()
     successes = sum(result.get() for result in results)
     print('The result of the Monte Carlo simulation:')
     print(f'{successes / trials:.2f}')
+
 
 def simple_version() -> None:
     n: int = 2
@@ -62,7 +65,7 @@ def simple_version() -> None:
         else:
             probability_matrix[i][i-1] = p
             probability_matrix[i][i+1] = p
-            
+
     print("Probability matrix:")
     print(probability_matrix)
     res = np.zeros(n+s+1)
@@ -70,6 +73,8 @@ def simple_version() -> None:
     res = np.linalg.solve(probability_matrix, res)
     print("Result:")
     print(res)
+
+
 def extended_version() -> None:
     def random_walk(start: Tuple[int, int], paths: List[Tuple[int, ...]], osk: List[int], exits: List[int], traveler: List[int], sinks: List[int]) -> np.ndarray:
         n, m = start
@@ -81,10 +86,8 @@ def extended_version() -> None:
             probability_matrix[i][i] = 1
         for i in osk:
             probability_matrix[i][i] = 1
-        
-        return probability_matrix
 
-        
+        return probability_matrix
 
     n, m = (int(x) for x in input().split())
     paths: List[tuple[int, ...]] = []
@@ -108,8 +111,6 @@ def extended_version() -> None:
 def main() -> None:
     extended_version()
 
+
 if __name__ == '__main__':
     main()
-
-
-
