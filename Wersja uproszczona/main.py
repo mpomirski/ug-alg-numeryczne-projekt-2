@@ -1,14 +1,24 @@
 # Michał Pomirski 15.03.2024
-from typing import List, Tuple
 import numpy as np
-import matplotlib.pyplot as plt
 import multiprocessing as mp
 import os
 import time
-# Random walk matrix
 
 
-def test_version() -> None:
+def random_walk(n):
+    np.random.seed((os.getpid() * int(time.time())) % 123456789)
+    position = 3
+    successes = 0
+    for _ in range(n):
+        while position not in [0, 5]:
+            position += np.random.choice([-1, 1], p=[0.5, 0.5])
+        if position == 0:
+            successes += 1
+        position = 3
+    return successes
+
+
+def test_version(trials: int = 10000) -> float:
     probability_matrix = np.matrix([
         [1,     0,      0,      0,      0,      0],
         [-0.5,  1,      -0.5,   0,      0,      0],
@@ -21,23 +31,8 @@ def test_version() -> None:
     y = np.array([0, 0, 0, 0, 0, 1])  # p5, p4, p3, p2, p1, p0
 
     result = np.linalg.solve(probability_matrix, y)
-    print('The result the random walk starting from p3 will end in p0:')
-    print(f'{result[2]:.2f}')
 
-    def random_walk(n):
-        np.random.seed((os.getpid() * int(time.time())) % 123456789)
-        position = 3
-        successes = 0
-        for _ in range(n):
-            while position not in [0, 5]:
-                position += np.random.choice([-1, 1], p=[0.5, 0.5])
-            if position == 0:
-                successes += 1
-            position = 3
-        return successes
     successes = 0
-
-    trials = 100000
     batches = 10
     batch_size = trials // batches
     pool = mp.Pool(mp.cpu_count())
@@ -46,17 +41,17 @@ def test_version() -> None:
     pool.close()
     pool.join()
     successes = sum(result.get() for result in results)
-    print('The result of the Monte Carlo simulation:')
-    print(f'{successes / trials:.2f}')
+    return successes / trials
 
 
-def simple_version() -> None:
+def simple_version() -> np.float64:
     n: int = 2
     s: int = 3
     p: float = -0.5
     good_position: int = 0
     bad_position: int = 5
-    probability_matrix = np.identity(n+s+1)
+    probability_matrix: np.ndarray[np.float64, np.dtype] = np.identity(
+        n+s+1, dtype=np.float64)
     for i in range(n+s+1):
         if i == bad_position:
             probability_matrix[i][i] = 1
@@ -66,50 +61,21 @@ def simple_version() -> None:
             probability_matrix[i][i-1] = p
             probability_matrix[i][i+1] = p
 
-    print("Probability matrix:")
-    print(probability_matrix)
     res = np.zeros(n+s+1)
     res[good_position] = 1
     res = np.linalg.solve(probability_matrix, res)
-    print("Result:")
-    print(res)
-
-
-def extended_version() -> None:
-    def random_walk(start: Tuple[int, int], paths: List[Tuple[int, ...]], osk: List[int], exits: List[int], traveler: List[int], sinks: List[int]) -> np.ndarray:
-        n, m = start
-        probability_matrix = np.zeros((m, m))
-        for path in paths:
-            i, j, length = path
-            probability_matrix[i][j] = 1 / length
-        for i in exits:
-            probability_matrix[i][i] = 1
-        for i in osk:
-            probability_matrix[i][i] = 1
-
-        return probability_matrix
-
-    n, m = (int(x) for x in input().split())
-    paths: List[tuple[int, ...]] = []
-    for _ in range(m):
-        paths.append(tuple(int(x) for x in input().split()))
-    osk: List[int] = [int(x) for x in input().split()[1:]]
-    exits: List[int] = [int(x) for x in input().split()[1:]]
-    traveler: List[int] = [int(x) for x in input().split()[1:]]
-    sinks: List[int] = [int(x) for x in input().split()[1:]]
-
-    # print(n, m)
-    # print(paths)
-    # print(osk)
-    # print(exits)
-    # print(traveler)
-    # print(sinks)
-    print("Probability matrix:")
-    print(random_walk((n, m), paths, osk, exits, traveler, sinks))
+    return res[s]
 
 
 def main() -> None:
-    extended_version()
+    trials: int = 100_000_000
+    print(f'Monte Carlo simulation: {test_version(trials):.4f}')
+    print(f'Simple version: {simple_version():.4f}')
+    print(f'Error: {abs(test_version() - simple_version()):.4f}')
+    print(
+        f'Error percentage: {abs(test_version() - simple_version()) / simple_version():.4%}')
+    print(
+        f'Are results close? {np.isclose(test_version(), simple_version(), atol=0.01)}')
 
 
 if __name__ == '__main__':
