@@ -40,7 +40,7 @@ def test_hypothesis_1():
                     if non_zero < non_zero_elements:
                         for i in range(size):
                             for j in range(size):
-                                if matrix[i][j] == 0 and non_zero < non_zero_elements:
+                                if matrix[i][j] == 0 and np.count_nonzero(matrix) < non_zero_elements:
                                     matrix[i][j] = 1
 
                     result_gauss = gauss(matrix, vector)
